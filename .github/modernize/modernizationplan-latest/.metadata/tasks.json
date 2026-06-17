@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Tasks template for modernization plan. Generate this file alongside plan.md to track individual migration tasks.",
+  "tasks": [
+    {
+      "type": "upgrade",
+      "id": "001-upgrade-dotnet",
+      "description": "Upgrade the PhotoAlbum application from .NET 9 to .NET 10 LTS",
+      "reason": ".NET 9 reached end-of-life in May 2026. Upgrading to .NET 10 LTS ensures long-term support and compatibility with the latest Azure SDK packages.",
+      "requirements": "Upgrade the project target framework from net9.0 to net10.0. Update all NuGet package references to versions compatible with .NET 10. Ensure the project builds successfully and all existing unit tests pass after the upgrade.",
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "transform",
+      "id": "002-transform-local-storage-to-azure-blob",
+      "description": "Migrate photo file storage from the local file system to Azure Blob Storage",
+      "reason": "The application currently saves uploaded images to wwwroot/uploads on the local disk, which is not scalable or durable in a cloud environment. Azure Blob Storage provides a managed, highly-available object store.",
+      "requirements": "Replace all local file-system read/write operations in PhotoService (upload, retrieve, delete) with Azure Blob Storage SDK calls. Use Azure Managed Identity (DefaultAzureCredential) for authentication — no connection strings or storage account keys in code or configuration. Preserve the existing IPhotoService interface contract. Ensure the project builds and all tests pass.",
+      "dependencies": ["001-upgrade-dotnet"],
+      "skills": [
+        {
+          "name": "migration-azure-storage-blob",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "transform",
+      "id": "003-transform-localdb-to-azure-sql",
+      "description": "Migrate the database from SQL Server LocalDB to Azure SQL Database",
+      "reason": "SQL Server LocalDB is a developer-only local instance not suitable for cloud deployment. Azure SQL Database provides a fully managed, scalable relational database service.",
+      "requirements": "Update the Entity Framework Core connection to target Azure SQL Database. Use Azure Managed Identity (passwordless authentication) via DefaultAzureCredential instead of SQL authentication or connection strings containing passwords. Update appsettings.json connection string format for Azure SQL. Ensure EF Core migrations are compatible with Azure SQL Database. The project must build and all tests must pass.",
+      "dependencies": ["001-upgrade-dotnet"],
+      "skills": [
+        {
+          "name": "migration-azure-sql-database",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "transform",
+      "id": "004-transform-managed-identity",
+      "description": "Adopt Azure Managed Identity for all Azure service authentication",
+      "reason": "Centralizing authentication on Managed Identity eliminates hard-coded credentials and connection strings with secrets, improving security and simplifying credential rotation.",
+      "requirements": "Ensure all Azure service clients (Blob Storage, SQL Database) use DefaultAzureCredential / Managed Identity. Remove any remaining password-based or key-based credential references from application code and configuration files. Verify that the application can authenticate to all Azure services using Managed Identity in a deployed environment.",
+      "dependencies": ["002-transform-local-storage-to-azure-blob", "003-transform-localdb-to-azure-sql"],
+      "skills": [
+        {
+          "name": "migration-managed-identity",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    },
+    {
+      "type": "security",
+      "id": "005-security-cve-remediation",
+      "description": "Scan all project dependencies for known CVEs and remediate identified vulnerabilities",
+      "reason": "Ensuring the modernized application is free of known security vulnerabilities before any cloud deployment reduces the attack surface and meets compliance requirements.",
+      "requirements": "Upgrade vulnerable dependencies to the minimum patched version. If a CVE fix requires a major version upgrade, document the affected dependency, the current version, the upgraded major version, and the breaking change risk. Verify that the project builds and all tests pass after remediation.",
+      "dependencies": ["001-upgrade-dotnet"],
+      "skills": [
+        {
+          "name": "validate-cves-and-fix",
+          "location": "builtin"
+        }
+      ],
+      "successCriteria": {
+        "passBuild": "true",
+        "generateNewUnitTests": "false",
+        "passUnitTests": "true"
+      }
+    }
+  ],
+  "metadata": {
+    "planName": "modernizationplan-latest",
+    "projectName": "PhotoAlbum",
+    "language": "dotnet",
+    "createdAt": "2026-06-17T17:35:03Z",
+    "version": "1.0"
+  }
+}
