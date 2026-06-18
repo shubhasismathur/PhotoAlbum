@@ -26,7 +26,7 @@ public class PhotoServiceTests : IDisposable
         _context = new PhotoAlbumContext(options);
 
         // Setup temp upload directory
-        _tempUploadPath = Path.Combine(Path.GetTempPath(), "PhotoAlbumTests", Guid.NewGuid().ToString());
+        _tempUploadPath = Path.Combine(AppContext.BaseDirectory, "test-artifacts", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_tempUploadPath);
 
         // Setup configuration
